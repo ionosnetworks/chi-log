@@ -16,6 +16,10 @@ type rusLogger struct {
 }
 
 func NewLogger(logger *logrus.Logger) func(next http.Handler) http.Handler {
+	if logger == nil {
+		// kind of a hack
+		logger = logrus.WithError(nil).Logger
+	}
 	return middleware.RequestLogger(&rusLogger{logger})
 }
 
