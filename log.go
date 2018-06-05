@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/sirupsen/logrus"
-	"runtime/debug"
 )
 
 type rusLogger struct {
@@ -75,7 +74,7 @@ func (l *rusLoggerEntry) Panic(v interface{}, stack []byte) {
 		"panic": fmt.Sprintf("%+v", v),
 	})
 	fmt.Fprintf(os.Stderr, "Panic: %+v\n", v)
-	debug.PrintStack()
+	os.Stderr.Write(stack)
 }
 
 // Helper methods used by the application to get the request-scoped
