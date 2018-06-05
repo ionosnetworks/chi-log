@@ -81,5 +81,13 @@ func RequestStatsMiddleware(next http.Handler) http.Handler {
 }
 
 func Stats(r *http.Request) *statsd.Client {
-	return r.Context().Value(StatsDKey).(*statsd.Client)
+	if s, ok := r.Context().Value(StatsDKey).(*statsd.Client); ok {
+		return s
+	} else {
+		c, _ := statsd.New(
+			statsd.Mute(true),
+			statsd.TagsFormat(statsd.InfluxDB),
+		)
+		return c
+	}
 }
