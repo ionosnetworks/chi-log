@@ -12,7 +12,13 @@ import (
 type ctxKeyStatsd string
 
 const (
-	StatsDKey ctxKeyStatsd = "statsd"
+	StatsDKey     ctxKeyStatsd = "statsd"
+	NoStatsLogKey ctxKeyStatsd = "nostatslog"
+)
+
+var noopStatsD, _ = statsd.New(
+	statsd.Mute(true),
+	statsd.TagsFormat(statsd.InfluxDB),
 )
 
 func StatsDMiddleWare(addr string, prefix string, appName string, tags ...string) func(http.Handler) http.Handler {
@@ -59,7 +65,12 @@ func (rec *statusRecorder) Request() *http.Request {
 
 func RequestStatsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c := r.Context().Value(StatsDKey).(*statsd.Client)
+		var c *statsd.Client
+		if f, ok := r.Context().Value(NoStatsLogKey).(bool); ok && f {
+			c = noopStatsD
+		} else {
+			c = r.Context().Value(StatsDKey).(*statsd.Client)
+		}
 		c.Count("http.requests", 1)
 		rs := time.Now()
 		var hj http.Hijacker
@@ -84,10 +95,6 @@ func Stats(r *http.Request) *statsd.Client {
 	if s, ok := r.Context().Value(StatsDKey).(*statsd.Client); ok {
 		return s
 	} else {
-		c, _ := statsd.New(
-			statsd.Mute(true),
-			statsd.TagsFormat(statsd.InfluxDB),
-		)
-		return c
+		return noopStatsD
 	}
 }
