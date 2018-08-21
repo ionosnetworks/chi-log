@@ -44,6 +44,7 @@ func (l *rusLogger) NewLogEntry(r *http.Request) middleware.LogEntry {
 	logFields["uri"] = fmt.Sprintf("%s://%s%s", scheme, r.Host, r.RequestURI)
 
 	entry.Logger = entry.Logger.WithFields(logFields)
+	entry.Level = logrus.InfoLevel
 
 	// entry.Logger.Infoln("request started")
 
@@ -52,6 +53,7 @@ func (l *rusLogger) NewLogEntry(r *http.Request) middleware.LogEntry {
 
 type rusLoggerEntry struct {
 	Logger logrus.FieldLogger
+	Level  logrus.Level
 }
 
 func (l *rusLoggerEntry) Write(status, bytes int, elapsed time.Duration) {
@@ -64,7 +66,20 @@ func (l *rusLoggerEntry) Write(status, bytes int, elapsed time.Duration) {
 	if status >= 500 {
 		l.Logger.Errorln("request completed with error")
 	} else {
-		l.Logger.Infoln("request completed")
+		switch l.Level {
+		case logrus.PanicLevel:
+			l.Logger.Panicln("request completed")
+		case logrus.FatalLevel:
+			l.Logger.Fatalln("request completed")
+		case logrus.ErrorLevel:
+			l.Logger.Errorln("request completed")
+		case logrus.WarnLevel:
+			l.Logger.Warnln("request completed")
+		case logrus.InfoLevel:
+			l.Logger.Infoln("request completed")
+		case logrus.DebugLevel:
+			l.Logger.Debugln("request completed")
+		}
 	}
 }
 
@@ -87,6 +102,12 @@ func (l *rusLoggerEntry) Panic(v interface{}, stack []byte) {
 func GetLog(r *http.Request) logrus.FieldLogger {
 	entry := middleware.GetLogEntry(r).(*rusLoggerEntry)
 	return entry.Logger
+}
+
+func LogEntrySetLevel(r *http.Request, level logrus.Level) {
+	if entry, ok := r.Context().Value(middleware.LogEntryCtxKey).(*rusLoggerEntry); ok {
+		entry.Level = level
+	}
 }
 
 func LogEntrySetField(r *http.Request, key string, value interface{}) {
