@@ -69,7 +69,10 @@ func RequestStatsMiddleware(next http.Handler) http.Handler {
 		if f, ok := r.Context().Value(NoStatsLogKey).(bool); ok && f {
 			c = noopStatsD
 		} else {
-			c = r.Context().Value(StatsDKey).(*statsd.Client)
+			c, ok = r.Context().Value(StatsDKey).(*statsd.Client)
+			if !ok {
+				c = noopStatsD
+			}
 		}
 		c.Count("http.requests", 1)
 		rs := time.Now()
