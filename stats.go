@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"gopkg.in/alexcesaro/statsd.v2"
+	"github.com/joeycumines/statsd"
 )
 
 type ctxKeyStatsd string
@@ -23,9 +23,12 @@ var noopStatsD, _ = statsd.New(
 
 func StatsDMiddleWare(addr string, prefix string, appName string, tags ...string) func(http.Handler) http.Handler {
 	t := append([]string{"app", appName}, tags...)
+	conn, _ := statsd.NewUDPConn("udp", addr, time.Second*30)
 	c, _ := statsd.New(
-		statsd.Address(addr),
 		statsd.Mute(addr == ""),
+		statsd.WriteCloser(conn),
+		statsd.TrimTrailingNewline(true),
+		statsd.UDPCheck(true),
 		statsd.TagsFormat(statsd.InfluxDB),
 		statsd.Tags(t...),
 		statsd.Prefix(prefix),
